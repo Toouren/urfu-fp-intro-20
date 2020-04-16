@@ -578,16 +578,16 @@ module Lecture06 where
 -}
 
 f :: [a] -> Int
-f = error "not implemented"
+f = length
 
 g :: (a -> b)->[a]->[b]
-g = error "not implemented"
+g = map
 
 q :: a -> a -> a
-q x y = error "not implemented"
+q x y = x
 
 p :: (a -> b) -> (b -> c) -> (a -> c)
-p f g = error "not implemented"
+p f g = g . f
 
 {-
   Крестики-нолики Чёрча.
@@ -624,7 +624,10 @@ createRow x y z = \case
   Third -> z
 
 createField :: Row -> Row -> Row -> Field
-createField x y z = error "not implemented"
+createField x y z = \case
+  First -> x
+  Second -> y
+  Third -> z
 
 -- Чтобы было с чего начинать проверять ваши функции
 emptyField :: Field
@@ -633,18 +636,39 @@ emptyField = createField emptyLine emptyLine emptyLine
     emptyLine = createRow Empty Empty Empty
 
 setCellInRow :: Row -> Index -> Value -> Row
-setCellInRow r i v = error "not implemented"
+setCellInRow r i v = \ind -> if ind == i then v else r ind
 
 -- Возвращает новое игровое поле, если клетку можно занять.
 -- Возвращает ошибку, если место занято.
 setCell :: Field -> Index -> Index -> Value -> Either String Field
-setCell field i j v = error "not implemented"
+setCell field i j v = 
+  if field i j == Empty
+    then Right newField
+    else Left error
+    where
+      error = "There is '" ++ show (field i j) ++ "' on " ++ show i ++ " " ++ show j
+      newField = \this -> if i == this then setCellInRow (field i) j v else field this
 
 data GameState = InProgress | Draw | XsWon | OsWon deriving (Eq, Show)
 
 getGameState :: Field -> GameState
-getGameState field = error "not implemented"
+getGameState field
+  | win Zero = OsWon
+  | win Cross = XsWon
+  | empty = InProgress
+  | otherwise = Draw
+  where
+    indexes = [First, Second, Third]
+    fullEqual p xs = all (== p) xs
 
+    isHorEqual r p = fullEqual p (map (\x -> field r x) indexes)
+    isVertEqual c p = fullEqual p (map (\x -> field x c) indexes)
+    isDiagonalEqual p = fullEqual p (map (\x -> field x x) indexes) || fullEqual p [field First Third, field Second Second, field Third First]
+    win p = isDiagonalEqual p || any (\x -> x == True) (map (\x -> (isHorEqual x p || isVertEqual x p)) indexes)
+
+    allCells = map (\r -> map (\c -> (field r c)) indexes) indexes
+
+    empty = any(Empty==) (allCells >>= id)
 -- </Задачи для самостоятельного решения>
 
 {- Источники

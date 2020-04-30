@@ -41,18 +41,20 @@ import qualified Data.IntMap as Map
 data Stack a = Stack [a] deriving (Eq, Show)
 
 createStack :: Stack a
-createStack = error "not implemented"
+createStack = Stack []
 
 -- Обратите внимание, что все структуры данных неизменяемые (immutable). Значит, если операция
 -- предполагает изменение структуры, то она просто должна возвращать новую уже изменённую версию.
 push :: Stack a -> a -> Stack a
-push stack x = error "not implemented"
+push (Stack xs) x = Stack (x:xs)
 
 pop :: Stack a -> Maybe (Stack a)
-pop stack = error "not implemented"
+pop (Stack []) = Nothing
+pop (Stack (_:xs)) = Just (Stack xs)
 
 peek :: Stack a -> Maybe a
-peek stack = error "not implemented"
+peek (Stack []) = Nothing
+peek (Stack (x:_)) = Just x
 
 -- </Задачи для самостоятельного решения>
 
@@ -170,17 +172,20 @@ dequeue' (q:qs) = (q, qs)             -- возвращаем (элемент, �
 data Queue a = Queue [a] [a] deriving (Eq, Show)
 
 createQueue :: Queue a
-createQueue = error "not implemented"
+createQueue = Queue [] []
 
 enqueue :: Queue a -> a -> Queue a
-enqueue queue x = error "not implemented"
+enqueue (Queue ls rs) x = Queue (x:ls) rs
 
 -- если очередь пустая возвращает ошибку
 dequeue :: Queue a -> (a, Queue a)
-dequeue queue = error "not implemented"
+dequeue (Queue [] []) = error "Empty Queue"
+dequeue (Queue ls []) = dequeue (Queue [] (reverse ls))
+dequeue (Queue ls (x:xs)) = (x, Queue ls xs) 
 
 isEmpty :: Queue a -> Bool
-isEmpty queue = error "not implemented"
+isEmpty (Queue [] []) = True
+isEmpty _ = False
 
 -- </Задачи для самостоятельного решения>
 
@@ -383,9 +388,35 @@ class IntArray a where
   update :: a -> Int -> Int -> a   -- обновить элемент по индексу
   (#) :: a -> Int -> Int           -- получить элемент по индексу
 
+instance IntArray [Int] where
+  fromList xs = map (
+      \case (i, x) -> x
+    ) xs
+  toList xs = zip [0..] xs
+  update xs i x = (take i xs) ++ (x : (drop (i + 1) xs))
+  (#) xs i = xs !! i
+
+instance IntArray (Array Int Int) where
+  fromList xs = array (0, length xs - 1) xs
+  toList xs = assocs xs 
+  update xs i x = xs // [(i, x)]
+  (#) xs i = xs ! i
+
+instance IntArray (Map.IntMap Int) where
+  fromList xs = Map.fromList xs
+  toList xs = Map.toList xs
+  update xs i x = Map.insert i x xs
+  (#) xs i = xs Map.! i
+
+counts :: IntArray a => [Int] -> a
+counts xs = foldl (\a i -> update a i $ (#) a i + 1)
+                (fromList $ zipWith (\i v -> (i, v)) [0..] $ replicate (maximum xs + 1) 0)
+                xs
+
 -- Сортирует массив целых неотрицательных чисел по возрастанию
 countingSort :: forall a. IntArray a => [Int] -> [Int]
-countingSort = error "not implemented"
+countingSort [] = []
+countingSort xs = concat [replicate n x | (x, n) <- toList $ counts @a xs]
 
 {-
   Tак можно запустить функцию сортировки с использованием конкретной реализацией массива:
